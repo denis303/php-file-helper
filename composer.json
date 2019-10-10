@@ -1,0 +1,9 @@
+{
+    "name": "denis303/php-file-helper",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "denis303\\php\\": ""
+        }
+    }
+}
