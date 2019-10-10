@@ -21,20 +21,20 @@ class FileHelper
         return false;
     }
 
-    public static function setPermission($path, $permissions, $throwExceptions = true, &$error = null)
+    public static function setPermission($path, $permission, $throwExceptions = true, &$error = null)
     {
         if (is_file($path) || is_dir($path))
         {
-            if (is_string($permissions))
+            if (is_string($permission))
             {
-                $permissions = octdec($permissions);
+                $permission = octdec($permission);
             }
 
-            $result = chmod($path, $permissions);
+            $result = chmod($path, $permission);
 
             if (!$result)
             {
-                $error = $path . ' chmod ' . $permissions . ' error.';
+                $error = $path . ' chmod ' . $permission . ' error.';
             
                 return static::_returnFalse($error, $throwExceptions);
             }
@@ -160,7 +160,7 @@ class FileHelper
         return true;
     }
 
-    public static function copyFile($source, $dest, $permissions = 0755, $throwExceptions = true, &$error = null)
+    public static function copyFile($source, $dest, $permission = 0755, $throwExceptions = true, &$error = null)
     {
         if (!is_file($source))
         {
@@ -176,7 +176,7 @@ class FileHelper
             return static::_returnFalse($error, $throwExceptions);
         }
 
-        if (!static::createDirectory($dir, $permissions, true, $throwExceptions, $error))
+        if (!static::createDirectory($dir, $permission, true, $throwExceptions, $error))
         {
             return static::_returnFalse($error, $throwExceptions);
         }
@@ -191,11 +191,11 @@ class FileHelper
         return true;
     }
 
-    public static function copyDirectory($source, $dest, $permissions = 0755, $throwExceptions, &$error = null)
+    public static function copyDirectory($source, $dest, $permission = 0755, $throwExceptions, &$error = null)
     {
         if (!is_dir($dest))
         {        
-            if (!static::createDirectory($dest, $permissions, true, $throwExceptions, $error))
+            if (!static::createDirectory($dest, $permission, true, $throwExceptions, $error))
             {
                 return static::_returnFalse($error, $throwExceptions);
             }
@@ -210,7 +210,7 @@ class FileHelper
 
         foreach($items as $file)
         {
-            if (!static::copy($source . DIRECTORY_SEPARATOR . $file, $dest . DIRECTORY_SEPARATOR . $file, $permissions, $throwExceptions, $error))
+            if (!static::copy($source . DIRECTORY_SEPARATOR . $file, $dest . DIRECTORY_SEPARATOR . $file, $permission, $throwExceptions, $error))
             {
                 return static::_returnFalse($error, $throwExceptions);
             }
@@ -219,7 +219,7 @@ class FileHelper
         return true;
     }
 
-    public static function copy($source, $dest, $permissions = 0755, $throwExceptions = true, &$error = null)
+    public static function copy($source, $dest, $permission = 0755, $throwExceptions = true, &$error = null)
     {
         if (is_link($source))
         {
@@ -228,12 +228,12 @@ class FileHelper
 
         if (is_file($source))
         {
-            return static::copyFile($source, $dest, $permissions, $throwExceptions, $error);
+            return static::copyFile($source, $dest, $permission, $throwExceptions, $error);
         }
 
         if (is_dir($source))
         {
-            return static::copyDirectory($source, $dest, $permissions, $throwExceptions, $error);
+            return static::copyDirectory($source, $dest, $permission, $throwExceptions, $error);
         }
 
         $error = 'File not found: ' . $source;
