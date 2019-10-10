@@ -11,6 +11,16 @@ use Exception;
 class FileHelper
 {
 
+    protected static function _returnFalse($error, $throwExceptions)
+    {
+        if ($throwExceptions)
+        {
+            throw new Exception($error);
+        }
+
+        return false;
+    }
+
     public static function setPermission($path, $permission, $throwExceptions = true, &$error = null)
     {
         if (is_file($path) || is_dir($path))
@@ -25,54 +35,78 @@ class FileHelper
             if (!$result)
             {
                 $error = $path . ' chmod ' . $permission . ' error.';
-
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-
-                return false;
+            
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
         else
         {
             $error = $path . ' path not found.';
 
-            if ($throwExceptions)
-            {
-                throw new Exception($error);
-            }
-
-            return false;
+            return static::_returnFalse($error);
         }
 
         return true;
     }
 
-    /**
-     * Creates a new directory.
-     *
-     * This method is similar to the PHP `mkdir()` function except that
-     * it uses `chmod()` to set the permission of the created directory
-     * in order to avoid the impact of the `umask` setting.
-     *
-     * @author Qiang Xue <qiang.xue@gmail.com>
-     * @author Alex Makarov <sam@rmcreative.ru>
-     * @link http://www.yiiframework.com/
-     * @copyright Copyright (c) 2008 Yii Software LLC
-     * @license http://www.yiiframework.com/license/
-     *
-     * @author denis303 <mail@denis303.com>
-     * @link http://denis303.com
-     *
-     * @param string $path path of the directory to be created.
-     * @param int $mode the permission to be set for the created directory.
-     * @param bool $recursive whether to create parent directories if they do not exist.
-     *
-     * @return bool whether the directory is created successfully
-     *
-     * @throws Exception if the directory could not be created (i.e. php error due to parallel changes)
-     */
+    public static function delete($dir, $throwExceptions = true, &$error = null)
+    {
+        if (is_file($dir) || is_link($dir))
+        {
+            if (!unlink($dir))
+            {
+                $error = 'Can\'t delete: ' . $dir;
+
+                return static::_returnFalse($error, $throwExceptions);
+            }
+
+            return true;
+        }
+
+        if (!is_dir($dir))
+        {
+            return static::_returnFalse($error, $throwExceptions);
+        }
+        
+        if (!($handle = opendir($dir)))
+        {
+            $error = 'Can\'t open dir: ' . $dir;
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+        
+        while (($file = readdir($handle)) !== false)
+        {
+            if ($file === '.' || $file === '..')
+            {
+                continue;
+            }
+        
+            $path = $dir . DIRECTORY_SEPARATOR . $file;
+    
+            if (!static::delete($path, $error))
+            {
+                return static::_returnFalse($error, $throwExceptions);
+            }
+        }
+        
+        if (!closedir($handle))
+        {
+            $error = 'Can\'t close directory: ' . $dir;
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        if (!rmdir($dir))
+        {
+            $error = 'Can\'t remove directory: '. $dir; 
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        return true;
+    }    
+
     public static function createDirectory($path, $mode = 0775, $recursive = true, $throwExceptions = true, &$error = null)
     {
         if (is_dir($path))
@@ -89,7 +123,7 @@ class FileHelper
 
             if (!$result)
             {
-                return false;
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
         
@@ -99,14 +133,7 @@ class FileHelper
             {
                 $error = $path . ' mkdir error.';
 
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-                else
-                {
-                    return false;
-                }
+                static::_returnFalse($error, $throwExceptions);
             }
         }
         catch(Exception $e)
@@ -115,14 +142,7 @@ class FileHelper
             {
                 $error = "Failed to create directory \"$path\": " . $e->getMessage();
 
-                if ($throwExceptions)
-                {
-                    throw new Exception($error); // https://github.com/yiisoft/yii2/issues/9288
-                }
-                else
-                {
-                    return false;
-                }
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
 
@@ -134,7 +154,9 @@ class FileHelper
      *
      * @author Aidan Lister <aidan@php.net>
      * @link http://aidanlister.com/2004/04/recursively-copying-directories-in-php/
+     *
      * @author denis303 <mail@denis303.com>
+     * @link http://denis303.com
      *
      * @param string $source Source path
      * @param string $dest Destination path
@@ -153,12 +175,7 @@ class FileHelper
             {
                 $error = $source . ' to ' . $dest . ' symlink error.';
 
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-
-                return false;
+                return static::_returnFalse($error, $throwExceptions);
             }
 
             return true;
@@ -171,10 +188,13 @@ class FileHelper
 
             if (!$dir)
             {
-                throw new Exception('Target directory error.');
+                return static::_returnFalse('Can\'t get dirname: ' . $dest, $throwExceptions);
             }
 
-            static::createDirectory($dir);
+            if (!static::createDirectory($dir, $permission, true, $throwExceptions, $error))
+            {
+                return static::_returnFalse($error, $throwExceptions);
+            }
 
             $result = copy($source, $dest);
 
@@ -182,12 +202,7 @@ class FileHelper
             {
                 $error = $source . ' to ' . $dest . ' copy error.';
 
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-
-                return false;
+                return static::_returnFalse($error, $throwExceptions);
             }
 
             return true;
@@ -196,18 +211,11 @@ class FileHelper
         // Make destination directory
         if (!is_dir($dest))
         {
-            $result = static::createDirectory($dest, $permissions, true, true);
+            $result = static::createDirectory($dest, $permissions, true, $throwExceptions, $error);
             
             if (!$result)
             {
-                $error = $dest . ' create directory error.';
-
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-
-                return false;
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
 
@@ -220,12 +228,7 @@ class FileHelper
             {
                 $error = $source . ' dir error.';
 
-                if ($throwExceptions)
-                {
-                    throw new Exception($error);
-                }
-
-                return false;
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
         
@@ -243,14 +246,22 @@ class FileHelper
             if (!$result)
             {
                 // Clean up
-                $dir->close();
+                if (!$dir->close())
+                {
+                    $error = 'Can\'t close dir: ' . $source;
 
-                return false;
+                    return static::_returnFalse($error, $throwExceptions);
+                }
+
+                return static::_returnFalse($error, $throwExceptions);
             }
         }
 
         // Clean up
-        $dir->close();
+        if (!$dir->close())
+        {
+            return static::_returnFalse('Can\'t close dir: ' . $source, $throwExceptions);
+        }
 
         return true;
     }
