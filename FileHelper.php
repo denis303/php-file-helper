@@ -89,13 +89,8 @@ class FileHelper
                 return static::_returnFalse($error, $throwExceptions);
             }
         }
-        
-        if (!closedir($handle))
-        {
-            $error = 'Can\'t close directory: ' . $dir;
 
-            return static::_returnFalse($error, $throwExceptions);
-        }
+        closedir($handle);
 
         if (!rmdir($dir))
         {
@@ -269,12 +264,7 @@ class FileHelper
             $items[] = $file;
         }
 
-        if (!$dir->close())
-        {
-            $error = 'Can\'t close directory: ' . $source;
-
-            return static::_returnFalse($error, $throwExceptions);
-        }
+        $dir->close();
 
         return $items;
     }
