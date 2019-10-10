@@ -116,7 +116,6 @@ class FileHelper
 
         $parentDir = dirname($path);
         
-        // recurse if parent dir does not exist and we are not at the root of the file system.  
         if ($recursive && !is_dir($parentDir) && $parentDir !== $path)
         {
             $result = static::createDirectory($parentDir, $mode, true, $throwExceptions, $error);
@@ -149,121 +148,135 @@ class FileHelper
         return static::setPermission($path, $mode, $throwExceptions, $error);
     }
 
-    /**
-     * Copy a file, or recursively copy a folder and its contents
-     *
-     * @author Aidan Lister <aidan@php.net>
-     * @link http://aidanlister.com/2004/04/recursively-copying-directories-in-php/
-     *
-     * @author denis303 <mail@denis303.com>
-     * @link http://denis303.com
-     *
-     * @param string $source Source path
-     * @param string $dest Destination path
-     * @param int $permissions New folder creation permissions
-     *
-     * @return bool Returns true on success, false on failure
-     */
+    public static function copySymlink($source, $dest, $throwExceptions = true, &$error = null)
+    {
+        if (!is_link($source))
+        {
+            return static::_returnFalse($source . ' not symlink.', $throwExceptions);
+        }
+
+        if (!symlink(readlink($source), $dest))
+        {
+            $error = 'Can\'t create symlink from ' . $source . ' to ' . $dest;
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        return true;
+    }
+
+    public static function copyFile($source, $dest, $permissions = 0755, $throwExceptions = true, &$error = null)
+    {
+        if (!is_file($source))
+        {
+            return static::_returnFalse($source . ' not file.', $throwExceptions);
+        }
+
+        $dir = pathinfo($dest, PATHINFO_DIRNAME);
+
+        if (!$dir)
+        {
+            $error = 'Can\'t get PATHINFO_DIRNAME: ' . $dest;
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        if (!static::createDirectory($dir, $permission, true, $throwExceptions, $error))
+        {
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        if (!copy($source, $dest);)
+        {
+            $error = 'Can\'t copy file from ' . $source . ' to ' . $dest;
+
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        return true;
+    }
+
+    public function copyDirectory($source, $dest, $permission = 0755, $throwExceptions, &$error = null)
+    {
+        if (!is_dir($dest))
+        {        
+            if (!static::createDirectory($dest, $permissions, true, $throwExceptions, $error))
+            {
+                return static::_returnFalse($error, $throwExceptions);
+            }
+        }
+
+        $items = static::readDirectory($source, $throwExceptions, $error);
+
+        if ($items === false)
+        {
+            return static::_returnFalse($error, $throwExceptions);
+        }
+
+        foreach($items as $file)
+        {
+            if (!static::copy($source . DIRECTORY_SEPARATOR . $file, $dest . DIRECTORY_SEPARATOR . $file, $permissions, $throwExceptions, $error))
+            {
+                return static::_returnFalse($error, $throwExceptions);
+            }
+        }
+
+        return true;
+    }
+
     public static function copy($source, $dest, $permissions = 0755, $throwExceptions = true, &$error = null)
     {
-        // Check for symlinks
         if (is_link($source))
         {
-            $result = symlink(readlink($source), $dest);
-       
-            if (!$result)
-            {
-                $error = $source . ' to ' . $dest . ' symlink error.';
-
-                return static::_returnFalse($error, $throwExceptions);
-            }
-
-            return true;
+            return static::copySymlink($source, $dest);
         }
 
-        // Simple copy for a file
         if (is_file($source))
         {
-            $dir = pathinfo($dest, PATHINFO_DIRNAME);
-
-            if (!$dir)
-            {
-                return static::_returnFalse('Can\'t get dirname: ' . $dest, $throwExceptions);
-            }
-
-            if (!static::createDirectory($dir, $permission, true, $throwExceptions, $error))
-            {
-                return static::_returnFalse($error, $throwExceptions);
-            }
-
-            $result = copy($source, $dest);
-
-            if (!$result)
-            {
-                $error = $source . ' to ' . $dest . ' copy error.';
-
-                return static::_returnFalse($error, $throwExceptions);
-            }
-
-            return true;
+            return static::copyFile($source, $dest, $permission, $throwExceptions, $error);
         }
 
-        // Make destination directory
-        if (!is_dir($dest))
+        if (is_dir($source))
         {
-            $result = static::createDirectory($dest, $permissions, true, $throwExceptions, $error);
-            
-            if (!$result)
-            {
-                return static::_returnFalse($error, $throwExceptions);
-            }
+            return static::copyDirectory($source, $dest, $permission, $throwExceptions, $error);
         }
 
-        // Loop through the folder
+        $error = 'File not found: ' . $source;
+
+        return static::_returnFalse($error, $throwExceptions);
+    }
+
+    public static function readDirectory($source, $throwExceptions = true, &$error = null)
+    {
         $dir = dir($source);
 
         if (!$dir)
         {
-            if (!$return)
-            {
-                $error = $source . ' dir error.';
+            $error = 'Can\'t open directory: ' . $dir;
 
-                return static::_returnFalse($error, $throwExceptions);
-            }
+            return static::_returnFalse($error, $throwExceptions);
         }
+
+        $items = [];
         
-        while(false !== ($entry = $dir->read()))
+        while(false !== ($file = $dir->read()))
         {
-            // Skip pointers
-            if ($entry == '.' || $entry == '..')
+            if ($file == '.' || $file == '..')
             {
                 continue;
             }
 
-            // Deep copy directories
-            $result = static::copy("$source/$entry", "$dest/$entry", $permissions, $throwExceptions, $error);
-        
-            if (!$result)
-            {
-                // Clean up
-                if (!$dir->close())
-                {
-                    $error = 'Can\'t close dir: ' . $source;
-
-                    return static::_returnFalse($error, $throwExceptions);
-                }
-
-                return static::_returnFalse($error, $throwExceptions);
-            }
+            $items[] = $file;
         }
 
-        // Clean up
         if (!$dir->close())
         {
-            return static::_returnFalse('Can\'t close dir: ' . $source, $throwExceptions);
+            $error = 'Can\'t close directory: ' . $source;
+
+            return static::_returnFalse($error, $throwExceptions);
         }
 
-        return true;
+        return $items;
     }
 
 }
