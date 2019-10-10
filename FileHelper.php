@@ -196,7 +196,7 @@ class FileHelper
         return true;
     }
 
-    public function copyDirectory($source, $dest, $permission = 0755, $throwExceptions, &$error = null)
+    public static function copyDirectory($source, $dest, $permission = 0755, $throwExceptions, &$error = null)
     {
         if (!is_dir($dest))
         {        
