@@ -67,34 +67,25 @@ class FileHelper
         {
             return static::_returnFalse($error, $throwExceptions);
         }
-        
-        if (!($handle = opendir($dir)))
-        {
-            $error = 'Can\'t open dir: ' . $dir;
 
+        $items = static::readDirectory($dir, $throwExceptions, $error);
+
+        if ($items === false)
+        {
             return static::_returnFalse($error, $throwExceptions);
         }
-        
-        while (($file = readdir($handle)) !== false)
+
+        foreach($items as $file)
         {
-            if ($file === '.' || $file === '..')
-            {
-                continue;
-            }
-        
-            $path = $dir . DIRECTORY_SEPARATOR . $file;
-    
-            if (!static::delete($path, $error))
+            if (!static::delete($dir . DIRECTORY_SEPARATOR . $file, $error))
             {
                 return static::_returnFalse($error, $throwExceptions);
             }
         }
 
-        closedir($handle);
-
         if (!rmdir($dir))
         {
-            $error = 'Can\'t remove directory: '. $dir; 
+            $error = 'Can\'t delete directory: '. $dir; 
 
             return static::_returnFalse($error, $throwExceptions);
         }
