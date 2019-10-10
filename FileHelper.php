@@ -196,7 +196,7 @@ class FileHelper
         return true;
     }
 
-    public static function copyDirectory($source, $dest, $permission = 0755, $throwExceptions, &$error = null)
+    public static function copyDirectory($source, $dest, $permissions = 0755, $throwExceptions, &$error = null)
     {
         if (!is_dir($dest))
         {        
@@ -233,12 +233,12 @@ class FileHelper
 
         if (is_file($source))
         {
-            return static::copyFile($source, $dest, $permission, $throwExceptions, $error);
+            return static::copyFile($source, $dest, $permissions, $throwExceptions, $error);
         }
 
         if (is_dir($source))
         {
-            return static::copyDirectory($source, $dest, $permission, $throwExceptions, $error);
+            return static::copyDirectory($source, $dest, $permissions, $throwExceptions, $error);
         }
 
         $error = 'File not found: ' . $source;
