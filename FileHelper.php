@@ -21,20 +21,20 @@ class FileHelper
         return false;
     }
 
-    public static function setPermission($path, $permission, $throwExceptions = true, &$error = null)
+    public static function setPermission($path, $permissions, $throwExceptions = true, &$error = null)
     {
         if (is_file($path) || is_dir($path))
         {
-            if (is_string($permission))
+            if (is_string($permissions))
             {
-                $permission = octdec($permission);
+                $permissions = octdec($permissions);
             }
 
-            $result = chmod($path, $permission);
+            $result = chmod($path, $permissions);
 
             if (!$result)
             {
-                $error = $path . ' chmod ' . $permission . ' error.';
+                $error = $path . ' chmod ' . $permissions . ' error.';
             
                 return static::_returnFalse($error, $throwExceptions);
             }
@@ -176,7 +176,7 @@ class FileHelper
             return static::_returnFalse($error, $throwExceptions);
         }
 
-        if (!static::createDirectory($dir, $permission, true, $throwExceptions, $error))
+        if (!static::createDirectory($dir, $permissions, true, $throwExceptions, $error))
         {
             return static::_returnFalse($error, $throwExceptions);
         }
