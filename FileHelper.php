@@ -186,7 +186,7 @@ class FileHelper
             return static::_returnFalse($error, $throwExceptions);
         }
 
-        if (!copy($source, $dest);)
+        if (!copy($source, $dest))
         {
             $error = 'Can\'t copy file from ' . $source . ' to ' . $dest;
 
